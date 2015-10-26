@@ -1,8 +1,11 @@
 #include <vector>
+#include <algorithm>
+#include <sstream>
+#include <iomanip>
 #include <map>
 #include <iostream>
 #include <set>
-
+#include <string.h>
 
 struct f_output
 {
@@ -60,6 +63,17 @@ int num_bits(int i)
         i >>= 1;
     }
     return n;
+}
+
+bool matches(int number, char *bits, int nBits)
+{
+    if (number >> nBits) return false;
+    for (int i = 0; i < nBits; ++i)
+    {
+        if (bits[i] == '-') continue;
+        if (((number >> i) & 1) != (bits[i] == '1')) return false;
+    }
+    return true;
 }
 
 void algo(int nBits, std::vector<algo_col> &cols)
@@ -222,7 +236,7 @@ int main()
     algo_cols.push_back(col0);
     algo(nBits, algo_cols);
 
-    /* Output the implicants */
+    /* Output the table */
     for (int i = 0; i < algo_cols.size(); ++i)
     {
         std::cout << std::endl;
@@ -255,6 +269,112 @@ int main()
         }
     }
 
+    /* Find prime implicants */
+    std::vector<algo_line> prime_implicants;
+    for (auto it = algo_cols.begin(); it != algo_cols.end(); ++it)
+    {
+        algo_col &col = *it;
+        for (int i = 0; i < col.blocks_by_numbits.size(); ++i)
+        {
+            std::vector<algo_line> &lines = col.blocks_by_numbits[i];
+            for (int k = 0; k < lines.size(); ++k)
+            {
+                algo_line &line = lines[k];
+                if (!line.checked)
+                {
+                    auto it = std::find_if(prime_implicants.begin(), prime_implicants.end(), [&](algo_line &li) { return memcmp(li.bits, line.bits, nBits) == 0; });
+                    if (it == prime_implicants.end())
+                    {
+                        prime_implicants.push_back(line);
+                    }
+                }
+            }
+        }
+    }
+
+    /* Count number of care values */
+    int num_care_values = 0;
+    for (int i = 0; i < nOutput; ++i)
+    {
+        num_care_values += outs[i].n_values;
+    }
+
+    /* Construct table for min coverage */
+    char **table = new char*[prime_implicants.size()];
+    int *header = new int[num_care_values];
+    for (int k = 0, c = 0; k < nOutput; ++k)
+    {
+        f_output &out = outs[k];
+        for (int l = 0; l < out.n_values; ++l, ++c)
+        {
+            header[c] = out.values[l];
+        }
+    }
+    for (int i = 0; i < prime_implicants.size(); ++i)
+    {
+        algo_line &line = prime_implicants[i];
+        table[i] = new char[num_care_values];
+        memset(table[i], ' ', num_care_values);
+        int c = 0;
+        for (int k = 0; k < nOutput; ++k)
+        {
+            f_output &out = outs[k];
+            if (line.tag & (1 << k))
+            {
+                for (int l = 0; l < out.n_values; ++l, ++c)
+                {
+                    int number = out.values[l];
+                    if (matches(number, line.bits, nBits))
+                    {
+                        table[i][c] = 'x';
+                    }
+                }
+            } else
+            {
+                c += out.n_values;
+            }
+        }
+    }
+
+    /* Print table */
+    /* Header */
+    std::cout << "          ";
+    for (int i = 0, f = 0, o = 0; i < num_care_values; ++i)
+    {
+        if (i - o >= outs[f].n_values)
+        {
+            std::cout << "    ";
+            f++;
+            o = i;
+        }
+        std::cout << std::setw(2) << header[i] << " ";
+    }
+    std::cout << std::endl;
+
+    /* Table */
+    for (int i = 0; i < prime_implicants.size(); ++i)
+    {
+        algo_line &pi = prime_implicants[i];
+        std::stringstream ss;
+        for (int b = 0; b < nBits; ++b)
+        {
+            ss << pi.bits[nBits - b - 1];
+        }
+        std::cout << std::left << std::setw(10) << ss.str() << std::right;
+
+        /* Stars */
+        for (int k = 0, f = 0, o = 0; k < num_care_values; ++k)
+        {
+            if (k - o >= outs[f].n_values)
+            {
+                std::cout << "    ";
+                f++;
+                o = k;
+            }
+            std::cout << std::setw(2) << table[i][k] << " ";
+        }
+        std::cout << std::endl;
+    }
 
     return 0;
 }
