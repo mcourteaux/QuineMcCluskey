@@ -155,8 +155,18 @@ void algo(int nBits, std::vector<algo_col> &cols)
     }
 }
 
-int main()
+int main(int argc, char **args)
 {
+    int output_format = 0;
+    if (argc == 2)
+    {
+        std::string a = args[1];
+        if (a == "--latex")
+        {
+            output_format = 1;
+        }
+    }
+
     /* Prompt input */
     int nBits;
     std::cin >> nBits;
@@ -239,33 +249,60 @@ int main()
     /* Output the table */
     for (int i = 0; i < algo_cols.size(); ++i)
     {
-        std::cout << std::endl;
-        std::cout << "==== Column " << i << " ====" << std::endl;
+        if (output_format == 1)
+        {
+            if (i) std::cout << "\\quad" << std::endl;
+        } else
+        {
+            std::cout << std::endl;
+            std::cout << "==== Column " << i << " ====" << std::endl;
+        }
         algo_col &col = algo_cols[i];
+        std::string seperator = "  ";
+        if (output_format == 1) 
+        {
+            seperator = " & ";
+            std::cout << "\\begin{tabular}{r r c l}" << std::endl;
+            std::cout << "bits & tag & & m\\\\" << std::endl;
+        }
         for (int k = 0; k < col.blocks_by_numbits.size(); ++k)
         {
             for (int l = 0; l < col.blocks_by_numbits[k].size(); ++l)
             {
                 algo_line &line = col.blocks_by_numbits[k][l];
+                if (output_format == 1) std::cout << "\\texttt{";
                 for (int b = 0; b < nBits; ++b)
                 {
                     std::cout << line.bits[nBits - b - 1];
                 }
-                std::cout << "   ";
+                if (output_format == 1) std::cout << "}";
+                std::cout << seperator;
+                if (output_format == 1) std::cout << "\\texttt{";
                 for (int b = 0; b < nOutput; ++b)
                 {
                     std::cout << ((line.tag & (1 << b)) ? '1' : '0');
                 }
-                std::cout << "  ";
+                if (output_format == 1) std::cout << "}";
+                std::cout << seperator;
                 std::cout << (line.checked ? "X" : " ");
-                std::cout << "  ";
+                std::cout << seperator;
                 for (int n = 0; n < line.numbers.size(); ++n)
                 {
-                    std::cout << line.numbers[n] << ", ";
+                    std::cout << line.numbers[n];
+                    if (n < line.numbers.size() - 1) std::cout << ", ";
                 }
-                std::cout << "\b\b  " << std::endl;
+                if (output_format == 1) std::cout << " \\\\";
+                std::cout << std::endl;
             }
             std::cout << std::endl;
+            if (output_format == 1)
+            {
+                std::cout << "\\hline" << std::endl;
+            }
+        }
+        if (output_format == 1)
+        {
+            std::cout << "\\end{tabular}" << std::endl;
         }
     }
 
@@ -336,44 +373,87 @@ int main()
         }
     }
 
+    std::cout << std::endl << std::endl;
+
     /* Print table */
-    /* Header */
-    std::cout << "          ";
-    for (int i = 0, f = 0, o = 0; i < num_care_values; ++i)
     {
-        if (i - o >= outs[f].n_values)
+        std::string seperator = "  ";
+        if (output_format == 1)
         {
-            std::cout << "    ";
-            f++;
-            o = i;
-        }
-        std::cout << std::setw(2) << header[i] << " ";
-    }
-    std::cout << std::endl;
-
-    /* Table */
-    for (int i = 0; i < prime_implicants.size(); ++i)
-    {
-        algo_line &pi = prime_implicants[i];
-        std::stringstream ss;
-        for (int b = 0; b < nBits; ++b)
-        {
-            ss << pi.bits[nBits - b - 1];
-        }
-        std::cout << std::left << std::setw(10) << ss.str() << std::right;
-
-        /* Stars */
-        for (int k = 0, f = 0, o = 0; k < num_care_values; ++k)
-        {
-            if (k - o >= outs[f].n_values)
+            seperator = " & ";
+            std::cout << "\\begin{tabular}{l | l |";
+            for (int i = 0, f = 0, o = 0; i < num_care_values; ++i)
             {
-                std::cout << "    ";
-                f++;
-                o = k;
+                if (i - o >= outs[f].n_values)
+                {
+                    std::cout << " c ";
+                    f++;
+                    o = i;
+                }
+                std::cout << " c ";
             }
-            std::cout << std::setw(2) << table[i][k] << " ";
+            std::cout << "}" << std::endl;
         }
+        /* Header */
+        if (output_format == 0)
+        {
+            std::cout << "             ";
+        } else
+        {
+            std::cout << " & ";
+        }
+        for (int i = 0, f = 0, o = 0; i < num_care_values; ++i)
+        {
+            if (i - o >= outs[f].n_values)
+            {
+                std::cout << seperator;
+                f++;
+                o = i;
+            }
+            std::cout << seperator << std::setw(2) << header[i];
+        }
+        if (output_format == 1) std::cout << " \\\\";
         std::cout << std::endl;
+        if (output_format == 1) std::cout << "\\hline" << std::endl;
+
+        /* Table */
+        for (int i = 0; i < prime_implicants.size(); ++i)
+        {
+            algo_line &pi = prime_implicants[i];
+            char name = 'A' + i;
+            std::stringstream ss;
+            for (int b = 0; b < nBits; ++b)
+            {
+                ss << pi.bits[nBits - b - 1];
+            }
+            if (output_format == 1)
+            {
+                std::cout << "$" << name << "$ & ";
+                std::cout << "\\texttt{" << ss.str() << "}";
+            } else
+            {
+                std::cout << name << "  ";
+                std::cout << std::left << std::setw(10) << ss.str() << std::right;
+            }
+
+            /* Stars */
+            for (int k = 0, f = 0, o = 0; k < num_care_values; ++k)
+            {
+                if (k - o >= outs[f].n_values)
+                {
+                    std::cout << seperator;
+                    f++;
+                    o = k;
+                }
+                std::cout << seperator << std::setw(2) << table[i][k];
+            }
+            if (output_format == 1) std::cout << " \\\\";
+            std::cout << std::endl;
+        }
+        if (output_format == 1)
+        {
+            std::cout << "\\end{tabular}" << std::endl;
+        }
     }
 
     return 0;
