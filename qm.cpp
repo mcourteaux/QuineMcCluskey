@@ -282,7 +282,7 @@ int main()
                 algo_line &line = lines[k];
                 if (!line.checked)
                 {
-                    auto it = std::find_if(prime_implicants.begin(), prime_implicants.end(), [&](algo_line &li) { return memcmp(li.bits, line.bits, nBits) == 0; });
+                    auto it = std::find_if(prime_implicants.begin(), prime_implicants.end(), [&](algo_line &li) { return li.tag == line.tag && memcmp(li.bits, line.bits, nBits) == 0; });
                     if (it == prime_implicants.end())
                     {
                         prime_implicants.push_back(line);
