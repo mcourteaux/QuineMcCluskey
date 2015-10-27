@@ -12,7 +12,7 @@ visualising the algoirithm and copying the output to reports.
 
 To compile, open a terminal and type:
 
-    g++ qm.cpp -o qm
+    g++ qm.cpp -o qm -std=c++11 -O3
 
 ## Usage
 
