@@ -26,7 +26,7 @@ The program uses a specific input format:
     [don't-care values seperated by space]
     ... // repeat for as many output functions as needed
 
-Example input:
+Example input (4 bits, 3 output functions)
 
     4
     3
@@ -42,6 +42,11 @@ Example input:
     6 7 8
     6
     10 11 12 13 14 15
+
+It is recommended to put your input in a file and use your shell to input it
+to the program. You can use the `--latex` flag to produce LaTeX syntax.
+
+    ./qm [--latex] < yourInputFile
 
 ## License
 
